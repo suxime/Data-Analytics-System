@@ -547,6 +547,10 @@
                 return;
             }
             
+            // 显示选中的文件名
+            const fileName = fileInput.files[0].name;
+            fileInput.parentElement.querySelector('.file-format-hint').textContent = `已选择: ${fileName}`;
+            
             formData.append('file', fileInput.files[0]);
             
             try {

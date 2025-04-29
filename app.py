@@ -97,7 +97,11 @@ def upload_file():
         # 读取并处理数据
         try:
             global current_data
-            df = pd.read_csv(filepath, encoding='utf-8')
+            # 根据文件扩展名选择读取方式
+            if filename.endswith('.csv'):
+                df = pd.read_csv(filepath, encoding='utf-8')
+            elif filename.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(filepath, engine='openpyxl')
             # 保存处理后的数据
             current_data = data_processor.process_data(df)
             # 设置数据给分析器和可视化器
@@ -148,4 +152,4 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv', 'xlsx', 'xls'}
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True)
