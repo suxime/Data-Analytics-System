@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 import pandas as pd
 import numpy as np
@@ -8,10 +9,12 @@ from datetime import datetime
 from models.data_processor import DataProcessor
 from models.analyzer import DataAnalyzer
 from models.visualizer import DataVisualizer
+from models.user import User
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+app.secret_key = os.urandom(24)  # 为session设置密钥
 
 # 确保上传目录存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -24,7 +27,56 @@ data_visualizer = DataVisualizer()
 # 存储当前数据
 current_data = None
 
+# 初始化Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+
+# 登录路由
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        user = User.get_by_username(username)
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('index'))
+        
+        flash('用户名或密码错误')
+    return render_template('login.html')
+
+# 注册路由
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if User.get_by_username(username):
+            flash('用户名已存在')
+            return render_template('register.html')
+        
+        user = User.create(username, password)
+        login_user(user)
+        return redirect(url_for('index'))
+    
+    return render_template('register.html')
+
+# 登出路由
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 

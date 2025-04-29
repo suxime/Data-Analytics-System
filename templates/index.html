@@ -8,30 +8,250 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        .container-fluid {
-            padding: 20px;
+        :root {
+            --primary-color: #2C3E50;
+            --secondary-color: #34495E;
+            --background-color: #F8F9FA;
+            --text-primary: #2C3E50;
+            --text-secondary: #5D6D7E;
+            --border-color: #E5E8E8;
+            --success-color: #27AE60;
+            --error-color: #E74C3C;
+            --accent-color: #95A5A6;
         }
-        .card {
-            margin-bottom: 20px;
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
-        #vizResult {
-            width: 100%;
-            height: 600px;
+
+        /* 导航栏样式 */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .error-message {
-            color: red;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid red;
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white !important;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        .user-info .username {
+            margin-right: 1rem;
+            color: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+        }
+
+        .user-info .username i {
+            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
             border-radius: 4px;
-            background-color: #fff3f3;
+            transition: all 0.3s ease;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.25);
+            color: white;
+        }
+
+        /* 主容器样式 */
+        .container-fluid {
+            padding: 2rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            background: white;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 文件上传区域 */
+        .file-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(44, 62, 80, 0.02);
+        }
+
+        .file-format-hint {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        /* 按钮样式 */
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        /* 数据列表样式 */
+        .list-group-item {
+            border: none;
+            border-radius: 6px !important;
+            margin-bottom: 0.5rem;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+        }
+
+        .list-group-item:hover {
+            background-color: rgba(44, 62, 80, 0.05);
+        }
+
+        .list-group-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .list-group-item i {
+            margin-right: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        /* 分析和可视化区域 */
+        .nav-tabs {
+            border: none;
+            margin-bottom: 1rem;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background: none;
+        }
+
+        .nav-tabs .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary-color);
+        }
+
+        /* 表单控件样式 */
+        .form-select {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+        }
+
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.1);
+        }
+
+        /* 消息样式 */
+        .error-message {
+            color: var(--error-color);
+            background-color: rgba(231, 76, 60, 0.1);
+            border: 1px solid var(--error-color);
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .success-message {
+            color: var(--success-color);
+            background-color: rgba(39, 174, 96, 0.1);
+            border: 1px solid var(--success-color);
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        /* 响应式布局调整 */
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding: 1rem;
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 0.5rem 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">交互式数据分析系统</a>
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-graph-up"></i>
+                交互式数据分析系统
+            </a>
+            <div class="user-info">
+                <span class="username">
+                    <i class="bi bi-person-circle"></i>
+                    {{ current_user.username }}
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    退出登录
+                </a>
+            </div>
         </div>
     </nav>
 
@@ -41,20 +261,28 @@
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-header">
+                        <i class="bi bi-cloud-upload"></i>
                         数据上传
                     </div>
                     <div class="card-body">
                         <form id="uploadForm">
-                            <div class="mb-3">
+                            <div class="file-upload-area">
                                 <input type="file" class="form-control" id="dataFile" accept=".csv,.xlsx,.xls">
+                                <div class="file-format-hint">
+                                    支持的格式: CSV, Excel (xlsx, xls)
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-primary">上传</button>
+                            <button type="submit" class="btn btn-primary w-100 mt-3">
+                                <i class="bi bi-upload"></i>
+                                上传数据
+                            </button>
                         </form>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-header">
+                        <i class="bi bi-list-columns"></i>
                         数据列
                     </div>
                     <div class="card-body">
@@ -71,10 +299,16 @@
                     <div class="card-header">
                         <ul class="nav nav-tabs card-header-tabs">
                             <li class="nav-item">
-                                <a class="nav-link active" data-bs-toggle="tab" href="#analysis">数据分析</a>
+                                <a class="nav-link active" data-bs-toggle="tab" href="#analysis">
+                                    <i class="bi bi-graph-up"></i>
+                                    数据分析
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#visualization">数据可视化</a>
+                                <a class="nav-link" data-bs-toggle="tab" href="#visualization">
+                                    <i class="bi bi-bar-chart"></i>
+                                    数据可视化
+                                </a>
                             </li>
                         </ul>
                     </div>
@@ -94,7 +328,10 @@
                                         </select>
                                     </div>
                                     <div class="col">
-                                        <button class="btn btn-primary" id="runAnalysis">运行分析</button>
+                                        <button class="btn btn-primary" id="runAnalysis">
+                                            <i class="bi bi-play-fill"></i>
+                                            运行分析
+                                        </button>
                                     </div>
                                 </div>
                                 <div id="analysisResult"></div>
@@ -116,7 +353,10 @@
                                         </select>
                                     </div>
                                     <div class="col">
-                                        <button class="btn btn-primary" id="runVisualization">生成图表</button>
+                                        <button class="btn btn-primary" id="runVisualization">
+                                            <i class="bi bi-bar-chart-fill"></i>
+                                            生成图表
+                                        </button>
                                     </div>
                                 </div>
                                 <div id="vizResult"></div>
@@ -135,34 +375,13 @@
 
         // 显示错误信息的函数
         function showError(container, message) {
-            container.innerHTML = `<div class="error-message">${message}</div>`;
+            container.innerHTML = `<div class="error-message"><i class="bi bi-exclamation-triangle"></i> ${message}</div>`;
         }
 
-        // 文件上传处理
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData();
-            const fileInput = document.getElementById('dataFile');
-            formData.append('file', fileInput.files[0]);
-
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-
-                if (data.error) {
-                    showError(document.getElementById('columnList'), data.error);
-                    return;
-                }
-
-                // 更新列表
-                updateColumnList(data.columns);
-            } catch (error) {
-                showError(document.getElementById('columnList'), '上传失败：' + error.message);
-            }
-        });
+        // 显示成功信息的函数
+        function showSuccess(container, message) {
+            container.innerHTML = `<div class="success-message"><i class="bi bi-check-circle"></i> ${message}</div>`;
+        }
 
         // 更新数据列列表
         function updateColumnList(columns) {
@@ -171,8 +390,11 @@
 
             columns.forEach(column => {
                 const item = document.createElement('button');
-                item.className = 'list-group-item list-group-item-action';
-                item.textContent = column;
+                item.className = 'list-group-item list-group-item-action d-flex align-items-center';
+                item.innerHTML = `
+                    <i class="bi bi-hash"></i>
+                    <span>${column}</span>
+                `;
                 item.onclick = () => toggleColumn(item, column);
                 columnList.appendChild(item);
             });
@@ -264,7 +486,13 @@
         // 显示分析结果
         function displayAnalysisResult(result) {
             const resultDiv = document.getElementById('analysisResult');
-            resultDiv.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            resultDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <pre class="mb-0" style="color: var(--text-primary);">${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                </div>
+            `;
         }
 
         // 显示可视化结果
@@ -273,16 +501,75 @@
             resultDiv.innerHTML = '';
             
             try {
-                // 确保result是一个有效的Plotly图表配置
                 if (!result.data || !Array.isArray(result.data)) {
                     throw new Error('无效的图表数据格式');
                 }
                 
-                Plotly.newPlot(resultDiv, result.data, result.layout || {});
+                const layout = {
+                    ...result.layout,
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: {
+                        family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+                        size: 12,
+                        color: var(--text-secondary)
+                    },
+                    margin: { t: 40, r: 40, b: 40, l: 40 },
+                    xaxis: {
+                        gridcolor: '#f0f0f0',
+                        linecolor: '#e0e0e0'
+                    },
+                    yaxis: {
+                        gridcolor: '#f0f0f0',
+                        linecolor: '#e0e0e0'
+                    }
+                };
+                
+                Plotly.newPlot(resultDiv, result.data, layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToRemove: ['lasso2d', 'select2d']
+                });
             } catch (error) {
                 showError(resultDiv, '图表渲染失败：' + error.message);
             }
         }
+
+        // 文件上传处理
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // 阻止表单默认提交行为
+            const formData = new FormData();
+            const fileInput = document.getElementById('dataFile');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showError(document.getElementById('columnList'), '请选择要上传的文件');
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(document.getElementById('columnList'), data.error);
+                    return;
+                }
+
+                showSuccess(document.getElementById('columnList'), '文件上传成功！');
+                updateColumnList(data.columns);
+                
+                // 清空文件输入框
+                fileInput.value = '';
+            } catch (error) {
+                showError(document.getElementById('columnList'), '上传失败：' + error.message);
+            }
+        });
     </script>
 </body>
 </html> 
