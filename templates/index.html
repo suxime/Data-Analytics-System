@@ -512,7 +512,7 @@
                     font: {
                         family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
                         size: 12,
-                        color: var(--text-secondary)
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim()
                     },
                     margin: { t: 40, r: 40, b: 40, l: 40 },
                     xaxis: {
@@ -572,4 +572,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
