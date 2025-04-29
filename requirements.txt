@@ -1,0 +1,12 @@
+flask>=2.0.1
+pandas>=2.1.0
+numpy>=1.26.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+scikit-learn>=1.4.0
+plotly>=5.18.0
+dash>=2.14.0
+python-dotenv>=1.0.0
+SQLAlchemy>=2.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0 
