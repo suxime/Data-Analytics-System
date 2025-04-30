@@ -9,7 +9,8 @@ class DataProcessor:
     
     def process_data(self, df):
         """处理输入的数据框"""
-        self.data = df.copy()
+        # 创建深拷贝以避免修改原始数据
+        self.data = df.copy(deep=True)
         
         # 基础清洗
         self._remove_duplicates()
@@ -19,31 +20,36 @@ class DataProcessor:
         return self.data
     
     def _remove_duplicates(self):
-        """删除重复行"""
-        self.data.drop_duplicates(inplace=True)
+        """删除重复行，保留第一次出现的记录"""
+        self.data.drop_duplicates(keep='first', inplace=True)
     
     def _handle_missing_values(self):
         """处理缺失值"""
         # 数值型列用均值填充
         numeric_columns = self.data.select_dtypes(include=[np.number]).columns
         for col in numeric_columns:
-            self.data[col].fillna(self.data[col].mean(), inplace=True)
+            # 避免链式赋值
+            self.data[col] = self.data[col].fillna(self.data[col].mean())
         
         # 分类型列用众数填充
         categorical_columns = self.data.select_dtypes(include=['object']).columns
         for col in categorical_columns:
-            self.data[col].fillna(self.data[col].mode()[0], inplace=True)
+            # 避免链式赋值
+            self.data[col] = self.data[col].fillna(self.data[col].mode()[0])
     
     def _convert_datatypes(self):
-        """转换数据类型"""
-        # 尝试将可能的字符串转换为数值
+        """转换数据类型，保持分类列不变"""
+        # 保持这些列为分类数据
+        category_columns = ['产品类别', '地区']
+        
         for col in self.data.columns:
-            try:
-                # 检查是否可以转换为数值
-                pd.to_numeric(self.data[col])
-                self.data[col] = pd.to_numeric(self.data[col])
-            except:
-                continue
+            if col not in category_columns:
+                try:
+                    # 尝试转换为数值类型
+                    numeric_values = pd.to_numeric(self.data[col])
+                    self.data[col] = numeric_values
+                except:
+                    continue
     
     def normalize_data(self, columns):
         """标准化选定的数值列"""

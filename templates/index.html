@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --primary-color: #2C3E50;
@@ -232,6 +233,40 @@
             .nav-tabs .nav-link {
                 padding: 0.5rem 1rem;
             }
+        }
+
+        /* AI解释样式 */
+        .ai-explanation {
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 1rem;
+            background-color: rgba(44, 62, 80, 0.02);
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+        
+        .ai-explanation p {
+            margin-bottom: 0.5rem;
+        }
+        
+        .ai-explanation h3 {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .ai-explanation ul, .ai-explanation ol {
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .ai-explanation li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .ai-explanation strong {
+            color: var(--primary-color);
         }
     </style>
 </head>
@@ -486,10 +521,22 @@
         // 显示分析结果
         function displayAnalysisResult(result) {
             const resultDiv = document.getElementById('analysisResult');
+            const analysisResult = JSON.stringify(result.analysis_result, null, 2);
+            const explanation = marked.parse(result.explanation);
+            
             resultDiv.innerHTML = `
                 <div class="card">
                     <div class="card-body">
-                        <pre class="mb-0" style="color: var(--text-primary);">${JSON.stringify(result, null, 2)}</pre>
+                        <h5 class="card-title">分析结果</h5>
+                        <pre class="mb-0" style="color: var(--text-primary);">${analysisResult}</pre>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">解释</h5>
+                        <div class="ai-explanation">
+                            ${explanation}
+                        </div>
                     </div>
                 </div>
             `;
@@ -525,12 +572,32 @@
                     }
                 };
                 
-                Plotly.newPlot(resultDiv, result.data, layout, {
+                // 创建图表容器
+                const chartContainer = document.createElement('div');
+                chartContainer.style.marginBottom = '1rem';
+                resultDiv.appendChild(chartContainer);
+                
+                Plotly.newPlot(chartContainer, result.data, layout, {
                     responsive: true,
                     displayModeBar: true,
                     displaylogo: false,
                     modeBarButtonsToRemove: ['lasso2d', 'select2d']
                 });
+                
+                // 添加AI解释
+                if (result.explanation) {
+                    const explanationDiv = document.createElement('div');
+                    explanationDiv.className = 'card mt-3';
+                    explanationDiv.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">解释</h5>
+                            <div class="ai-explanation">
+                                ${marked.parse(result.explanation)}
+                            </div>
+                        </div>
+                    `;
+                    resultDiv.appendChild(explanationDiv);
+                }
             } catch (error) {
                 showError(resultDiv, '图表渲染失败：' + error.message);
             }

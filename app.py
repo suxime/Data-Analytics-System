@@ -10,6 +10,10 @@ from models.data_processor import DataProcessor
 from models.analyzer import DataAnalyzer
 from models.visualizer import DataVisualizer
 from models.user import User
+from models.ai_explainer import AIExplainer
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -23,6 +27,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 data_processor = DataProcessor()
 data_analyzer = DataAnalyzer()
 data_visualizer = DataVisualizer()
+ai_explainer = AIExplainer(api_key=os.getenv('DASHSCOPE_API_KEY'))  # 从环境变量获取API密钥
 
 # 存储当前数据
 current_data = None
@@ -128,25 +133,52 @@ def analyze_data():
         if not analysis_type or not columns:
             return jsonify({'error': '缺少必要参数'}), 400
         
+        # 执行分析
         result = data_analyzer.analyze(analysis_type, columns)
-        return jsonify(result)
+        
+        # 生成AI解释
+        try:
+            explanation = ai_explainer.generate_explanation(analysis_type, result, columns)
+        except Exception as e:
+            explanation = f"生成解释时出错: {str(e)}"
+        
+        return jsonify({
+            'analysis_result': result,
+            'explanation': explanation
+        })
     except Exception as e:
         return jsonify({'error': f'分析错误: {str(e)}'}), 500
 
 @app.route('/visualize', methods=['POST'])
-def visualize_data():
+@login_required
+def visualize():
+    if current_data is None or current_data.empty:
+        return jsonify({'error': '请先上传数据'})
+    
     try:
-        params = request.get_json()
-        viz_type = params.get('type')
-        columns = params.get('columns', [])
+        data = json.loads(request.data)
+        viz_type = data.get('type')
+        columns = data.get('columns', [])
         
         if not viz_type or not columns:
-            return jsonify({'error': '缺少必要参数'}), 400
+            return jsonify({'error': '请选择图表类型和数据列'})
         
-        result = data_visualizer.visualize(viz_type, columns)
-        return jsonify(result)
+        # 生成可视化
+        viz_result = data_visualizer.visualize(viz_type, columns)
+        
+        # 生成AI解释
+        explanation = ai_explainer.generate_explanation(
+            analysis_type=f"visualization_{viz_type}",
+            analysis_result=viz_result,
+            columns=columns
+        )
+        
+        # 将解释添加到结果中
+        viz_result['explanation'] = explanation
+        
+        return jsonify(viz_result)
     except Exception as e:
-        return jsonify({'error': f'可视化错误: {str(e)}'}), 500
+        return jsonify({'error': str(e)})
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv', 'xlsx', 'xls'}

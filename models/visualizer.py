@@ -142,26 +142,69 @@ class DataVisualizer:
                             title=f"{column}的分布柱状图")
             else:
                 # 分类数据，显示频数
-                value_counts = self.data[column].value_counts()
-                fig = px.bar(x=value_counts.index, 
-                            y=value_counts.values,
-                            title=f"{column}的类别分布")
+                # 确保使用原始数据进行计数
+                value_counts = pd.DataFrame(self.data[column].value_counts()).reset_index()
+                value_counts.columns = ['category', 'count']
+                
+                # 创建柱状图
+                fig = px.bar(value_counts, 
+                            x='category',
+                            y='count',
+                            title=f"{column}的类别分布",
+                            text='count')
+                
+                # 更新图表显示
+                fig.update_traces(
+                    textposition='outside',
+                    texttemplate='%{text}',  # 确保显示为正确的文本值
+                    hovertemplate='%{x}<br>数量: %{y}<extra></extra>'
+                )
+                
+                # 更新布局
+                fig.update_layout(
+                    xaxis_title=column,
+                    yaxis_title="数量",
+                    showlegend=False,
+                    xaxis={'type': 'category'},
+                    yaxis={
+                        'range': [0, max(value_counts['count']) * 1.1],  # 设置y轴范围
+                        'dtick': 1  # 设置y轴刻度间隔为1
+                    },
+                    margin=dict(t=50, b=50, l=50, r=50),
+                    bargap=0.2  # 调整柱子间距
+                )
             
-            fig.update_layout(
-                xaxis_title=column,
-                yaxis_title="频数"
-            )
         else:
             # 多列比较，只使用数值型列
             numeric_cols = [col for col in columns if pd.api.types.is_numeric_dtype(self.data[col])]
             if not numeric_cols:
                 raise ValueError("多列柱状图需要至少一个数值型列")
             
-            fig = px.bar(self.data, y=numeric_cols,
-                        title="多变量对比柱状图")
+            # 计算每列的统计值
+            summary_data = pd.DataFrame({
+                'variable': numeric_cols,
+                'value': [self.data[col].mean() for col in numeric_cols]
+            })
+            
+            fig = px.bar(summary_data,
+                        x='variable',
+                        y='value',
+                        title="多变量对比柱状图",
+                        text=summary_data['value'].round(2))
+            
+            fig.update_traces(
+                textposition='outside',
+                texttemplate='%{text}',
+                hovertemplate='%{x}<br>平均值: %{y:.2f}<extra></extra>'
+            )
+            
             fig.update_layout(
-                xaxis_title="索引",
-                yaxis_title="数值"
+                xaxis_title="变量",
+                yaxis_title="平均值",
+                showlegend=False,
+                xaxis={'type': 'category'},
+                yaxis={'range': [0, max(summary_data['value']) * 1.1]},
+                margin=dict(t=50, b=50, l=50, r=50)
             )
         return fig
     
@@ -186,12 +229,14 @@ class DataVisualizer:
     
     def set_data(self, data):
         """设置要可视化的数据"""
-        self.data = data
+        if data is None or data.empty:
+            raise ValueError("数据为空，无法设置")
+        self.data = data.copy(deep=True)
         # 将日期列转换为datetime类型
         for col in self.data.columns:
-            if self.data[col].dtype == 'object':
+            if col == '日期':  # 只处理日期列
                 try:
-                    self.data[col] = pd.to_datetime(self.data[col])
-                except:
-                    pass
-        return self 
+                    self.data[col] = pd.to_datetime(self.data[col], format='%Y-%m-%d')
+                except Exception as e:
+                    raise ValueError(f"日期列转换失败: {str(e)}")
+        return self
