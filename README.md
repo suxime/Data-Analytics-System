@@ -31,6 +31,10 @@
    - 主成分分析
    - 聚类分析
 
+5. AI 解释功能
+   - 基于 DashScope API，为分析结果生成通俗易懂的解释
+   - 帮助用户更好地理解数据分析的意义和结果
+
 ## 系统要求
 
 - Python 3.7+
@@ -84,10 +88,21 @@ interactive-data-analysis/
 ├── models/               # 模型文件
 │   ├── data_processor.py # 数据处理类
 │   ├── analyzer.py       # 数据分析类
-│   └── visualizer.py     # 数据可视化类
+│   ├── visualizer.py     # 数据可视化类
+│   ├── ai_explainer.py   # AI 解释功能类
 └── templates/            # 前端模板
     └── index.html        # 主页面
 ```
+
+## 环境变量配置
+
+在项目根目录下创建一个 `.env` 文件，并添加以下内容：
+
+```
+DASHSCOPE_API_KEY="your_api_key_here"
+```
+
+将 `your_api_key_here` 替换为你的实际 API 密钥。此密钥用于支持 AI 解释功能。
 
 ## 注意事项
 
@@ -104,4 +119,4 @@ interactive-data-analysis/
 
 ## 许可证
 
-MIT License 
+MIT License
