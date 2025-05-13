@@ -166,7 +166,22 @@ def visualize():
         
         # 生成可视化
         viz_result = data_visualizer.visualize(viz_type, columns)
+        return jsonify(viz_result)
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/get_viz_explanation', methods=['POST'])
+@login_required
+def get_viz_explanation():
+    try:
+        data = json.loads(request.data)
+        viz_type = data.get('type')
+        viz_result = data.get('viz_result')
+        columns = data.get('columns', [])
         
+        if not viz_type or not viz_result or not columns:
+            return jsonify({'error': '缺少必要参数'}), 400
+            
         # 生成AI解释
         explanation = ai_explainer.generate_explanation(
             analysis_type=f"visualization_{viz_type}",
@@ -174,12 +189,9 @@ def visualize():
             columns=columns
         )
         
-        # 将解释添加到结果中
-        viz_result['explanation'] = explanation
-        
-        return jsonify(viz_result)
+        return jsonify({'explanation': explanation})
     except Exception as e:
-        return jsonify({'error': str(e)})
+        return jsonify({'error': str(e)}), 500
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv', 'xlsx', 'xls'}

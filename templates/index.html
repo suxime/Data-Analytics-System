@@ -268,9 +268,42 @@
         .ai-explanation strong {
             color: var(--primary-color);
         }
+
+        /* 加载动画样式 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <!-- 添加加载提示元素 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
@@ -418,6 +451,12 @@
             container.innerHTML = `<div class="success-message"><i class="bi bi-check-circle"></i> ${message}</div>`;
         }
 
+        // 显示/隐藏加载动画
+        function toggleLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+
         // 更新数据列列表
         function updateColumnList(columns) {
             const columnList = document.getElementById('columnList');
@@ -456,6 +495,7 @@
             }
 
             try {
+                toggleLoading(true);
                 const response = await fetch('/analyze', {
                     method: 'POST',
                     headers: {
@@ -476,6 +516,8 @@
                 displayAnalysisResult(result);
             } catch (error) {
                 showError(resultDiv, '分析失败：' + error.message);
+            } finally {
+                toggleLoading(false);
             }
         });
 
@@ -490,6 +532,7 @@
             }
 
             try {
+                toggleLoading(true);
                 const response = await fetch('/visualize', {
                     method: 'POST',
                     headers: {
@@ -515,6 +558,8 @@
                 displayVisualization(result);
             } catch (error) {
                 showError(resultDiv, '可视化失败：' + error.message);
+            } finally {
+                toggleLoading(false);
             }
         });
 
@@ -541,17 +586,62 @@
                 </div>
             `;
         }
-
+        function decodeBinaryData(data){
+            if (!data || typeof data !== 'object' || !data.bdata) {
+                return data;
+            }
+            const binaryString = atob(data.bdata);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            let array;
+            switch (data.dtype) {
+                case 'f8':
+                    array = new Float64Array(bytes.buffer);
+                    break;
+                case 'f4':
+                    array = new Float32Array(bytes.buffer);
+                    break;
+                case 'i8':
+                    array = new BigInt64Array(bytes.buffer);
+                    break;
+                case 'i4':
+                    array = new Int32Array(bytes.buffer);
+                    break;
+                case 'i2':
+                    array = new Int16Array(bytes.buffer);
+                    break;
+                case 'i1':
+                    array = new Int8Array(bytes.buffer);
+                    break;
+                default:
+                    throw new Error(`不支持的数据类型: ${data.dtype}`);
+            }
+            
+            return Array.from(array);
+        }
         // 显示可视化结果
         function displayVisualization(result) {
             const resultDiv = document.getElementById('vizResult');
             resultDiv.innerHTML = '';
-            
             try {
                 if (!result.data || !Array.isArray(result.data)) {
                     throw new Error('无效的图表数据格式');
                 }
                 
+                // 处理数据中的二进制编码
+                const processedData = result.data.map(trace => {
+                    const processedTrace = { ...trace };
+                    ['x', 'y', 'z','values'].forEach(axis => {
+                        if (trace[axis]) {
+                            processedTrace[axis] = decodeBinaryData(trace[axis]);
+                        }
+                    });
+                    return processedTrace;
+                });
+                console.log(JSON.stringify(processedData))
                 const layout = {
                     ...result.layout,
                     paper_bgcolor: 'rgba(0,0,0,0)',
@@ -577,27 +667,68 @@
                 chartContainer.style.marginBottom = '1rem';
                 resultDiv.appendChild(chartContainer);
                 
-                Plotly.newPlot(chartContainer, result.data, layout, {
+                Plotly.newPlot(chartContainer, processedData, layout, {
                     responsive: true,
                     displayModeBar: true,
                     displaylogo: false,
                     modeBarButtonsToRemove: ['lasso2d', 'select2d']
                 });
-                
-                // 添加AI解释
-                if (result.explanation) {
-                    const explanationDiv = document.createElement('div');
-                    explanationDiv.className = 'card mt-3';
-                    explanationDiv.innerHTML = `
-                        <div class="card-body">
-                            <h5 class="card-title">解释</h5>
-                            <div class="ai-explanation">
-                                ${marked.parse(result.explanation)}
+
+                // 添加获取AI解释的按钮
+                const explanationButton = document.createElement('button');
+                explanationButton.className = 'btn btn-primary mt-3';
+                explanationButton.innerHTML = '<i class="bi bi-robot"></i> 获取图表解释';
+                explanationButton.onclick = async () => {
+                    try {
+                        explanationButton.disabled = true;
+                        explanationButton.innerHTML = '<i class="bi bi-hourglass-split"></i> 正在生成解释...';
+                        
+                        const response = await fetch('/get_viz_explanation', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                type: document.getElementById('vizType').value,
+                                viz_result: result,
+                                columns: selectedColumns
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        
+                        // 创建解释容器
+                        const explanationDiv = document.createElement('div');
+                        explanationDiv.className = 'card mt-3';
+                        explanationDiv.innerHTML = `
+                            <div class="card-body">
+                                <h5 class="card-title">AI解释</h5>
+                                <div class="ai-explanation">
+                                    ${marked.parse(data.explanation)}
+                                </div>
                             </div>
-                        </div>
-                    `;
-                    resultDiv.appendChild(explanationDiv);
-                }
+                        `;
+                        
+                        // 移除旧的解释（如果存在）
+                        const oldExplanation = resultDiv.querySelector('.card.mt-3');
+                        if (oldExplanation) {
+                            oldExplanation.remove();
+                        }
+                        
+                        resultDiv.appendChild(explanationDiv);
+                        explanationButton.innerHTML = '<i class="bi bi-check-circle"></i> 已生成解释';
+                    } catch (error) {
+                        showError(resultDiv, '获取解释失败：' + error.message);
+                        explanationButton.disabled = false;
+                        explanationButton.innerHTML = '<i class="bi bi-robot"></i> 重新获取图表解释';
+                    }
+                };
+                
+                resultDiv.appendChild(explanationButton);
             } catch (error) {
                 showError(resultDiv, '图表渲染失败：' + error.message);
             }
