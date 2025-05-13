@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 import json
+from init_db import init_db
 from datetime import datetime
 from models.data_processor import DataProcessor
 from models.analyzer import DataAnalyzer
@@ -184,4 +185,5 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv', 'xlsx', 'xls'}
 
 if __name__ == '__main__':
+    init_db() # 初始化数据库
     app.run(debug=True)
